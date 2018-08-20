@@ -46,7 +46,7 @@ def pickPointsInMeshV2(mesh, nPoints = 1000):
         sel.SetInputData(chkPts)
         sel.SetSurfaceData(mesh)
         sel.CheckSurfaceOn()
-        sel.Update()
+        sel.Update() # 85.5% of runtime (as expected)
         
         pointi = [] # new list
         j = 0
@@ -74,15 +74,17 @@ def pointsToScatter(q, points, memSave = False):
     points = np.array(points)
     dist = scipy.spatial.distance.pdist(points, metric = "euclidean")
     if not memSave:
-        inter = np.outer(np.abs(dist), q)
+        inter = np.outer(np.abs(dist), q) # 10% of runtime
         # definition of np.sinc contains an additional factor pi, so we divide by pi. 
         # I = 2 * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
         # prefactor should be 4 \pi.. perhaps.
+        # 90% of runtime
         I = 4 * np.pi * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
     else:
         I = np.empty(q.shape)
         I.fill(np.nan) # initialize as nan
         for qi, qval in enumerate(q):
+            # 99.8% runtime is spend in this line, probably due to the explicit loop
             I[qi] = 4 * np.pi * (np.sinc(dist * qval / np.pi)).sum() / points.size**2
 
     return I # , dist
