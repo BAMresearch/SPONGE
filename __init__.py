@@ -9,7 +9,7 @@ __author__ = "Brian R. Pauw"
 __contact__ = "brian@stack.nl"
 __license__ = "GPLv3+"
 __copyright__ = "Bundesanstalt für Materialforschung und -Prüfung"
-__date__ = "2017-04-12"
+__date__ = "2019-01-04"
 __status__ = "alpha"
 version = "0.1"
 
@@ -17,7 +17,7 @@ __all__ = []
 
 from .sponge import sponge
 from .plotfunctions import simPlot
-from .calcfunctions import pickPointsInMeshV2, pointsToScatter, polydataToMass
+from .calcfunctions import pickPointsInMeshV2, pointsToScatter, pointsToScatterD, logEdges, polydataToMass
 from .stlfunctions  import getSTLReader, STLToPolydata
 from .distfunctions import interpolate, distSpreadGaussian
 from .smearfunctions import halfTrapzPDF, slitSmearTrapz

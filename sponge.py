@@ -4,7 +4,7 @@ import pandas
 import numpy as np
 
 from .plotfunctions  import simPlot
-from .calcfunctions  import pickPointsInMeshV2, pointsToScatter, polydataToMass
+from .calcfunctions  import pickPointsInMeshV2, pointsToScatter, pointsToScatterD, logEdges, polydataToMass
 from .stlfunctions   import getSTLReader, STLToPolydata
 from .distfunctions  import interpolate, distSpreadGaussian
 from .smearfunctions import halfTrapzPDF, slitSmearTrapz
@@ -36,6 +36,7 @@ class sponge(object):
             "halfPenUmbra" : 2.5,                 # slit smear width
             "parallel"     : False,               # try running this in parallel
             "threads"      : 3,                   # with this many threads
+            "fastMethod"   : True                 # "fastMethod" uses pointsToScatterD instead of pointsToScatter
             } 
 
     def __init__(self, params = None):
@@ -54,32 +55,35 @@ class sponge(object):
 
     # replaced in notebook..
     
-    # def singleRun(self, position = None):
-    #     """ Starts a single calculation based on the provided parameters """
-    #     mesh = STLToPolydata(self.parameters["filename"])
-    #     pts = pickPointsInMeshV2(mesh, self.parameters["nPoints"])
-    #     I = pointsToScatter(self.q, pts)
-    #     self.rawData.append(I)
-    #     return 
-    #     
-    # def multiRun(self):
-    #     # repeats the intensity calculation a number of times to get a good average intensity, 
-    #     # and get uncertainty estimates to boot. 
-    #     self.rawData = list()
-    #     
-    #     if self.parameters["parallel"]: # doesn't work yet...
-    #         with Pool(self.parameters["threads"]) as p:
-    #             result = p.map(self.singleRun, [range(self.parameters["nRep"])])
-    #             p.close()
-    #             p.join()
-    #     else:
-    #         for rep in range(self.parameters["nRep"]):
-    #             self.singleRun()
+    def singleRun(self, position = None):
+        """ Starts a single calculation based on the provided parameters """
+        mesh = STLToPolydata(self.parameters["filename"])
+        pts = pickPointsInMeshV2(mesh, self.parameters["nPoints"])
+        if not self.parameters["fastMethod"]:
+            I = pointsToScatter(self.q, pts)
+        else:
+            I = pointsToScatterD(self.q, pts)
+        self.rawData.append(I)
+        return 
+        
+    def multiRun(self):
+        # repeats the intensity calculation a number of times to get a good average intensity, 
+        # and get uncertainty estimates to boot. 
+        self.rawData = list()
+        
+        if self.parameters["parallel"]: # doesn't work yet...
+            with Pool(self.parameters["threads"]) as p:
+                result = p.map(self.singleRun, [range(self.parameters["nRep"])])
+                p.close()
+                p.join()
+        else:
+            for rep in range(self.parameters["nRep"]):
+                self.singleRun()
 
-    #     self.data = pandas.DataFrame({"Q": self.q})
-    #     self.data["I"] = np.array(self.rawData).mean(axis = 0)
-    #     self.data["IError"] = np.array(self.rawData).std(axis = 0, ddof = 1) / np.sqrt(np.array(self.rawData).shape[0])
-    #     return
+        self.data = pandas.DataFrame({"Q": self.q})
+        self.data["I"] = np.array(self.rawData).mean(axis = 0)
+        self.data["IError"] = np.array(self.rawData).std(axis = 0, ddof = 1) / np.sqrt(np.array(self.rawData).shape[0])
+        return
 
     def applySizeDistribution(self):
         x, g, addDat = distSpreadGaussian(

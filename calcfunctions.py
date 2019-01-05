@@ -46,7 +46,7 @@ def pickPointsInMeshV2(mesh, nPoints = 1000):
         sel.SetInputData(chkPts)
         sel.SetSurfaceData(mesh)
         sel.CheckSurfaceOn()
-        sel.Update() # 85.5% of runtime (as expected)
+        sel.Update()
         
         pointi = [] # new list
         j = 0
@@ -64,27 +64,69 @@ def pickPointsInMeshV2(mesh, nPoints = 1000):
 
     return pts
 
+def logEdges(dist, qmin, qmax, nq):
+    """
+    Calculates the optimal histogramming bin edges for pointsToScatterD, based on input arguments:
+    * dist *: the point-to-point distance list from scipy.spatial.distance.pdists
+    * qmin *: the minimum requested Q value
+    * qmax *: the maximum requested Q value
+    * nq *: the number of requested q points 
+    """
+    # core logEdges:    
+    logEdges = np.logspace(
+        np.log10(2 * np.pi / qmax), 
+        np.log10(2 * np.pi / qmin), 
+        nq)
+
+    # if there are distances below:
+    if (dist.min() < (2 * np.pi / qmax)):
+        logEdges = np.concatenate(
+            [np.logspace(np.log10(dist.min()),np.log10(2 * np.pi / qmax),10, endpoint = False), 
+            logEdges]
+        )
+    # if there are distances above:
+    if (dist.max() > (2 * np.pi / qmin)):
+        logEdges = np.concatenate(
+            [np.logspace(np.log10(2 * np.pi / qmin),np.log10(dist.max()),11, endpoint = True)[1:], 
+            logEdges]
+        )
+    return logEdges
+
+def pointsToScatterD(q, points, memSave = False):
+    """ Calculate the scattering intensity from an array of points, by histogramming first. 
+    This should be the quicker -- but potentially riskier -- method of calculating the 
+    scattering intensity compared to the original pointsToScatter function. """
+
+    points = np.array(points)
+    dist = scipy.spatial.distance.pdist(points, metric = "euclidean")
+    lEdges = logEdges(dist, q.min(), q.max(), q.size)
+    dlog, elog = np.histogram(dist, bins = lEdges, density = False)
+    de = np.diff(elog) / 2 + elog[:-1] # middle distance of a given bin
+    # dle = dlog / np.diff(elog) # normalized fraction of contributions in a given bin
+    I2 = np.empty(q.shape)
+    I2.fill(np.nan) # initialize as nan
+    for qi, qval in enumerate(q):
+        I2[qi] = 4 * np.pi * (dlog * np.sinc(de * qval / np.pi)).sum() / points.size**2
+    return I2
+
 def pointsToScatter(q, points, memSave = False):
     # calculate the distance matrix between points, using a fast scipy function. 
     # This scipy function returns only unique distances, so only one distance 
     # value is returned for point1-point2 and point2-point1 combinations. It also
     # removes the zero distances between point1-point1. 
     # we then calculate the scattering using the Debye equation. 
-
     points = np.array(points)
     dist = scipy.spatial.distance.pdist(points, metric = "euclidean")
     if not memSave:
-        inter = np.outer(np.abs(dist), q) # 10% of runtime
+        inter = np.outer(np.abs(dist), q)
         # definition of np.sinc contains an additional factor pi, so we divide by pi. 
         # I = 2 * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
         # prefactor should be 4 \pi.. perhaps.
-        # 90% of runtime
         I = 4 * np.pi * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
     else:
         I = np.empty(q.shape)
         I.fill(np.nan) # initialize as nan
         for qi, qval in enumerate(q):
-            # 99.8% runtime is spend in this line, probably due to the explicit loop
             I[qi] = 4 * np.pi * (np.sinc(dist * qval / np.pi)).sum() / points.size**2
 
     return I # , dist
