@@ -87,7 +87,7 @@ def logEdges(dist, qmin, qmax, nq):
     # if there are distances above:
     if (dist.max() > (2 * np.pi / qmin)):
         logEdges = np.concatenate(
-            [logEdges, np.logspace(np.log10(2 * np.pi / qmin),np.log10(dist.max()),11, endpoint = True)[1:] 
+            [logEdges, np.logspace(np.log10(2 * np.pi / qmin), np.log10(dist.max()),11, endpoint = True)[1:] 
             ]
         )
     return logEdges
