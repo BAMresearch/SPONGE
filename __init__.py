@@ -15,7 +15,7 @@ version = "17"
 
 __all__ = []
 
-from .sponge import sponge
+from .s import s
 from .plotfunctions import simPlot
 from .calcfunctions import pickPointsInMeshV2, pointsToScatter, pointsToScatterD, logEdges, polydataToMass
 from .stlfunctions  import getSTLReader, STLToPolydata
@@ -44,9 +44,5 @@ if __name__ == "__main__":
     #run the program, scotty! I want a kwargs object, so convert args:
     adict = vars(adict)
     sponge.sponge(**adict) #and expand to kwargs
-
-def "__main__":
-    print("boo")
-
 
 # vim: set ts=4 sts=4 sw=4 tw=0:

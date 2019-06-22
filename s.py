@@ -3,6 +3,9 @@
 import pandas
 import numpy as np
 import argparse
+import datetime
+
+from nexuswriter import NeXusWriter
 
 from pathlib import Path
 
@@ -25,8 +28,7 @@ class s(object):
             error('Path to excel filename with the simulation settings must be provided')
         if group is None:
             error('simulation group must be specified')
-        Tests = loadTests(efName)
-        Tests["projectDirectory"] = projectDirectory # add a project directory to all the entries
+        Tests = self.loadTests(efName)
         resultDict = self.runTests(Tests = Tests, group = group)
             
     def loadTests(self, efName):
@@ -52,7 +54,8 @@ class s(object):
             "qmax": "float",
             "mu": "float",
             "sigma": "float",
-            })    
+            })  
+        Tests["projectDirectory"] = projectDirectory # add a project directory to all the entries  
         return Tests
 
     def singleRun(self, parameters):
@@ -130,51 +133,32 @@ class s(object):
                 raise
 
             res = self.multiRun(param)
+            self.storeResult(res["parameters"], res["data"])
             resultDict.update({testindex: res})
         return resultDict
 
+    def storeResult(self, parameters, data):
+        """Stores the result in a NeXus structure... """
+        directDict = {}
+        for rdKey, rdValue in parameters.items():
+            if rdKey == 'data':
+                continue # skip this, not part of the metadata
+            directDict.update(
+                {'/sasentry1/simulationParameters/{}'.format(rdKey) : '{}'.format(rdValue)}        
+            )
         
-        
-    # def multiRun(self):
-    #     # repeats the intensity calculation a number of times to get a good average intensity, 
-    #     # and get uncertainty estimates to boot. 
-    #     self.rawData = list()
-        
-    #     if self.parameters["parallel"]: # doesn't work yet...
-    #         with Pool(self.parameters["threads"]) as p:
-    #             result = p.map(self.singleRun, [range(self.parameters["nRep"])])
-    #             p.close()
-    #             p.join()
-    #     else:
-    #         for rep in range(self.parameters["nRep"]):
-    #             self.singleRun()
-
-    #     self.data = pandas.DataFrame({"Q": self.q})
-    #     self.data["I"] = np.array(self.rawData).mean(axis = 0)
-    #     self.data["IError"] = np.array(self.rawData).std(axis = 0, ddof = 1) / np.sqrt(np.array(self.rawData).shape[0])
-    #     return
-
-    # def applySizeDistribution(self):
-    #     x, g, addDat = distSpreadGaussian(
-    #             self.data, 
-    #             sigma = self.parameters["sigma"], 
-    #             ndiv = self.parameters["ndiv"])
-    #     addDat.update({
-    #             "distX" : x,
-    #             "distPX" : g})
-    #     self.distData = pandas.DataFrame(addDat)
-
-    #     return 
-
-    # def applySmearing(self):
-    #     x, g, addDat = slitSmearTrapz(
-    #             self.distData, 
-    #             halfUmbra = self.parameters["halfUmbra"], 
-    #             halfPenUmbra = self.parameters["halfPenUmbra"],
-    #             ndiv = self.parameters["ndiv"])
-    #     addDat.update({
-    #         "smearX" : x,
-    #         "smearPX" : g})
-    #     self.smearData = pandas.DataFrame(addDat)
-
-    #     return 
+        tp = Path(parameters['projectDirectory'], parameters['ofname'])
+        NeXusWriter(
+            filename = tp.with_suffix('.nxs'), 
+            Q = data['Q'], 
+            I = data['I'],
+            IError = data['IError'], 
+            wavelength = 0.1542,
+            wavelengthUnits = 'nm',
+            title = 'Simulated data for testgroup: {}, file: {}'.format(
+                parameters['testgroup'], parameters['filename']            
+            ),
+            timestamp = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).replace(microsecond=0).isoformat(),
+            overwrite = True,
+            directDict = directDict, 
+        )
