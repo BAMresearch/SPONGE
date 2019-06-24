@@ -4,6 +4,7 @@ import pandas
 import numpy as np
 import argparse
 import datetime
+import os
 
 from nexuswriter import NeXusWriter
 
@@ -25,9 +26,9 @@ class s(object):
     def __init__(self, efName = None, group = None):
         # reset everything for a new instance
         if efName is None:
-            error('Path to excel filename with the simulation settings must be provided')
+            os.error('Path to excel filename with the simulation settings must be provided')
         if group is None:
-            error('simulation group must be specified')
+            os.error('simulation group must be specified')
         Tests = self.loadTests(efName)
         resultDict = self.runTests(Tests = Tests, group = group)
             
