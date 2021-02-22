@@ -60,6 +60,8 @@ def main(argv = None):
             help = "Path to excel filename containing the sim settings")
     parser.add_argument("-g", "--group", type = str, default = None,
             help = "simulation group to work on")    
+    parser.add_argument("-n", "--numProcesses", type = int, default = None,
+            help = "Maximum number of parallel processes. Default is number of cores on system.")    
 
     # TODO: add info about output files to be created ...
     if isMac():

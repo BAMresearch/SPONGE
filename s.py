@@ -23,14 +23,14 @@ import multiprocessing
 class s(object):
     # generates an instance of Sponge
 
-    def __init__(self, efName = None, group = None):
+    def __init__(self, efName = None, group = None, numProcesses = None):
         # reset everything for a new instance
         if efName is None:
             os.error('Path to excel filename with the simulation settings must be provided')
         if group is None:
             os.error('simulation group must be specified')
         Tests = self.loadTests(efName)
-        resultDict = self.runTests(Tests = Tests, group = group)
+        resultDict = self.runTests(Tests = Tests, group = group, numProcesses = numProcesses)
             
     def loadTests(self, efName):
         efName = Path(efName) # it's ok if this is done multiple times...
@@ -84,13 +84,18 @@ class s(object):
         # return I * vol **2
         return I, vol
 
-    def multiRun(self, parameters, progressBar = True):
+    def multiRun(self, parameters, progressBar = True, numProcesses = None):
         q = np.logspace(
             np.log10(parameters["qmin"]),
             np.log10(parameters["qmax"]),
             parameters["nq"])
 
-        Pool = multiprocessing.Pool(processes = multiprocessing.cpu_count())
+        if numProcesses is None:
+            nump = multiprocessing.cpu_count()
+        else:
+            assert isinstance(numProcesses, int)
+            nump = np.minimum(multiprocessing.cpu_count(), numProcesses)
+        Pool = multiprocessing.Pool(processes = nump)
         mapParam = [parameters for i in range(int(parameters["nrep"]))]
         rawData = Pool.map(self.singleRun, mapParam)    
         Pool.close()
@@ -115,7 +120,7 @@ class s(object):
         return {"data"      : data,
                "parameters" : parameters}
 
-    def runTests(self, Tests = None, start = 0, stop = None, group = None):
+    def runTests(self, Tests = None, start = 0, stop = None, group = None, numProcesses = None):
         resultDict = {}
         print(Tests)
         if stop is None:
@@ -133,7 +138,7 @@ class s(object):
             except:
                 raise
 
-            res = self.multiRun(param)
+            res = self.multiRun(param, progressBar = False, numProcesses = numProcesses)
             self.storeResult(res["parameters"], res["data"])
             resultDict.update({testindex: res})
         return resultDict
