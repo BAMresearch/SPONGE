@@ -5,13 +5,21 @@
 import vtk 
 import numpy as np
 import scipy.spatial
+import logging
 
 def polydataToMass(polydata):
+    # returns the object volume
     Mass = vtk.vtkMassProperties()
     Mass.SetInputData(polydata)
     Mass.Update() 
     return Mass.GetVolume()
 
+def polydataToSurface(polydata):
+    # returns the surface area
+    Mass = vtk.vtkMassProperties()
+    Mass.SetInputData(polydata)
+    Mass.Update() 
+    return Mass.GetSurfaceArea()
 
 def pickPointsInMeshV2(mesh, nPoints = 1000): 
     # choose points within the boundaries. These points are then (double)checked whether 
@@ -72,42 +80,45 @@ def logEdges(dist, qmin, qmax, nq):
     * qmax *: the maximum requested Q value
     * nq *: the number of requested q points 
     """
-    # core logEdges:    
-    logEdges = np.logspace(
-        np.log10(2 * np.pi / qmax), 
-        np.log10(2 * np.pi / qmin), 
-        nq)
+    logging.error('This "fast method"-functionality is depreciated, please use Debyer for this approach')
 
-    # if there are distances below:
-    if (dist.min() < (2 * np.pi / qmax)):
-        logEdges = np.concatenate(
-            [np.logspace(np.log10(dist.min()),np.log10(2 * np.pi / qmax),10, endpoint = False), 
-            logEdges]
-        )
-    # if there are distances above:
-    if (dist.max() > (2 * np.pi / qmin)):
-        logEdges = np.concatenate(
-            [logEdges, np.logspace(np.log10(2 * np.pi / qmin), np.log10(dist.max()),11, endpoint = True)[1:] 
-            ]
-        )
-    return logEdges
+    # # core logEdges:    
+    # logEdges = np.logspace(
+    #     np.log10(2 * np.pi / qmax), 
+    #     np.log10(2 * np.pi / qmin), 
+    #     nq)
+
+    # # if there are distances below:
+    # if (dist.min() < (2 * np.pi / qmax)):
+    #     logEdges = np.concatenate(
+    #         [np.logspace(np.log10(dist.min()),np.log10(2 * np.pi / qmax),10, endpoint = False), 
+    #         logEdges]
+    #     )
+    # # if there are distances above:
+    # if (dist.max() > (2 * np.pi / qmin)):
+    #     logEdges = np.concatenate(
+    #         [logEdges, np.logspace(np.log10(2 * np.pi / qmin), np.log10(dist.max()),11, endpoint = True)[1:] 
+    #         ]
+    #     )
+    # return logEdges
 
 def pointsToScatterD(q, points, memSave = False):
     """ Calculate the scattering intensity from an array of points, by histogramming first. 
     This should be the quicker -- but potentially riskier -- method of calculating the 
     scattering intensity compared to the original pointsToScatter function. """
 
-    points = np.array(points)
-    dist = scipy.spatial.distance.pdist(points, metric = "euclidean")
-    lEdges = logEdges(dist, q.min(), q.max(), q.size)
-    dlog, elog = np.histogram(dist, bins = lEdges, density = False)
-    de = np.diff(elog) / 2 + elog[:-1] # middle distance of a given bin
-    # dle = dlog / np.diff(elog) # normalized fraction of contributions in a given bin
-    I2 = np.empty(q.shape)
-    I2.fill(np.nan) # initialize as nan
-    for qi, qval in enumerate(q):
-        I2[qi] = 4 * np.pi * (dlog * np.sinc(de * qval / np.pi)).sum() / points.size**2
-    return I2
+    logging.error('This "fast method"-functionality is depreciated, please use Debyer for this approach')
+    # points = np.array(points)
+    # dist = scipy.spatial.distance.pdist(points, metric = "euclidean")
+    # lEdges = logEdges(dist, q.min(), q.max(), q.size)
+    # dlog, elog = np.histogram(dist, bins = lEdges, density = False)
+    # de = np.diff(elog) / 2 + elog[:-1] # middle distance of a given bin
+    # # dle = dlog / np.diff(elog) # normalized fraction of contributions in a given bin
+    # I2 = np.empty(q.shape)
+    # I2.fill(np.nan) # initialize as nan
+    # for qi, qval in enumerate(q):
+    #     I2[qi] = 4 * np.pi * (dlog * np.sinc(de * qval / np.pi)).sum() / points.size**2
+    # return I2
 
 def pointsToScatter(q, points, memSave = False):
     # calculate the distance matrix between points, using a fast scipy function. 
@@ -121,13 +132,13 @@ def pointsToScatter(q, points, memSave = False):
         inter = np.outer(np.abs(dist), q)
         # definition of np.sinc contains an additional factor pi, so we divide by pi. 
         # I = 2 * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
-        # prefactor should be 4 \pi.. perhaps.
-        I = 4 * np.pi * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
+        # prefactor should be 4 \pi.. perhaps. -> let's not for now. makes abs intensity scaling easier later
+        I = (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
     else:
         I = np.empty(q.shape)
         I.fill(np.nan) # initialize as nan
         for qi, qval in enumerate(q):
-            I[qi] = 4 * np.pi * (np.sinc(dist * qval / np.pi)).sum() / points.size**2
+            I[qi] = (np.sinc(dist * qval / np.pi)).sum() / points.size**2
 
     return I # , dist
 
