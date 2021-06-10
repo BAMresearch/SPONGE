@@ -172,7 +172,7 @@ class NeXusWriter(object):
         print("adding attribute at pathKey {}".format(pathKey))
         path, key = pathKey.rsplit("@", 1)
         
-        with h5py.File(self._filename) as h5f:
+        with h5py.File(self._filename, 'a') as h5f:
             if not path in h5f:
                 print("    Location {} does not exist in output file".format(path))
                 return
@@ -196,7 +196,7 @@ class NeXusWriter(object):
         path, key = pathKey.rsplit('/', 1)
         
         """stores the settings in an output file (HDF5)"""
-        with h5py.File(self._filename) as h5f:
+        with h5py.File(self._filename, 'a') as h5f:
             h5g = h5f.require_group(path)
 
             # store arrays:

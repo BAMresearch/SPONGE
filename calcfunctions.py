@@ -72,6 +72,29 @@ def pickPointsInMeshV2(mesh, nPoints = 1000):
 
     return pts
 
+
+def pointsToScatter(q, points, memSave = False):
+    # calculate the distance matrix between points, using a fast scipy function. 
+    # This scipy function returns only unique distances, so only one distance 
+    # value is returned for point1-point2 and point2-point1 combinations. It also
+    # removes the zero distances between point1-point1. 
+    # we then calculate the scattering using the Debye equation. 
+    points = np.array(points)
+    dist = scipy.spatial.distance.pdist(points, metric = "euclidean")
+    if not memSave:
+        inter = np.outer(np.abs(dist), q)
+        # definition of np.sinc contains an additional factor pi, so we divide by pi. 
+        # I = 2 * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
+        # prefactor should be 4 \pi.. perhaps. -> let's not for now. makes abs intensity scaling easier later
+        I = (np.sinc(inter / np.pi)).mean(axis=0) # / dist.size
+    else:
+        I = np.empty(q.shape)
+        I.fill(np.nan) # initialize as nan
+        for qi, qval in enumerate(q):
+            I[qi] = np.sinc(dist * qval / np.pi).mean() # / dist.size
+
+    return I # , dist
+
 def logEdges(dist, qmin, qmax, nq):
     """
     Calculates the optimal histogramming bin edges for pointsToScatterD, based on input arguments:
@@ -120,25 +143,4 @@ def pointsToScatterD(q, points, memSave = False):
     #     I2[qi] = 4 * np.pi * (dlog * np.sinc(de * qval / np.pi)).sum() / points.size**2
     # return I2
 
-def pointsToScatter(q, points, memSave = False):
-    # calculate the distance matrix between points, using a fast scipy function. 
-    # This scipy function returns only unique distances, so only one distance 
-    # value is returned for point1-point2 and point2-point1 combinations. It also
-    # removes the zero distances between point1-point1. 
-    # we then calculate the scattering using the Debye equation. 
-    points = np.array(points)
-    dist = scipy.spatial.distance.pdist(points, metric = "euclidean")
-    if not memSave:
-        inter = np.outer(np.abs(dist), q)
-        # definition of np.sinc contains an additional factor pi, so we divide by pi. 
-        # I = 2 * (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
-        # prefactor should be 4 \pi.. perhaps. -> let's not for now. makes abs intensity scaling easier later
-        I = (np.sinc(inter / np.pi)).sum(axis=0) / points.size**2
-    else:
-        I = np.empty(q.shape)
-        I.fill(np.nan) # initialize as nan
-        for qi, qval in enumerate(q):
-            I[qi] = (np.sinc(dist * qval / np.pi)).sum() / points.size**2
-
-    return I # , dist
 
