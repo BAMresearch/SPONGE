@@ -27,6 +27,8 @@ class s(object):
     surfaceAreas = None # surface areas of the simulated objects
     simdata = None      # Q, I, IError
     IAtQMin = None      # I at smallest q, not volume-square compensated, should be close to 1 or you didn't simulate to low enough q
+    _SLDs = None
+    _volumefraction = None
 
     def __init__(self, efName = None, group = None, numProcesses = None, run=True):
         # reset everything for a new instance
@@ -35,6 +37,11 @@ class s(object):
         self.surfaceAreas = [] # surface areas of the simulated objects
         self.simdata = []      # Q, I, IError
         self.IAtQMin = []      # I at smallest q, not volume-square compensated, should be close to 1 or you didn't simulate to low enough q
+        # array of SLDs for each of the phases, also for multiphase modelling: 
+        # in the order of [SLD(phase1), SLD(phase2), ..., SLD(dispersant)]). 
+        # For single-phase, just have [SLD(particle), SLD(dispersant)]
+        self._SLDs = [1., 0.]
+        self._volumefraction = 1. # volume fraction of scatterers        
 
         if run:
             if efName is None:
@@ -100,6 +107,11 @@ class s(object):
         return I, vol, surf
 
     def multiRun(self, parameters, numProcesses = None):
+        if "sld" in parameters:
+            self._SLD = list(parameters["sld"])
+        if "volumefraction" in parameters:
+            self._volumefraction = float(parameters["volumefraction"])
+
         q = np.logspace(
             np.log10(parameters["qmin"]),
             np.log10(parameters["qmax"]),
@@ -131,7 +143,7 @@ class s(object):
         for item in rawData:
             # note: we are volume-weighting the intensity here!
             # if you want "standard" number-weighted intensity, then multiply not by item[1] but item[1]**2
-            rawDataI.append(item[0] * item[1]) # =Fsq/V of SasView-style (intensity multiplied by volume-square, then divided by volume once). Still should be multiplied by deltaSLD**2 to go to abs units, scale will be volume fraction if obtained intensity from the calculation converges to 1 at q=0
+            rawDataI.append(item[0] * item[1] * self._volumefraction * (self._SLDs[-1] - self._SLDs[0])**2) # =Fsq/V of SasView-style (intensity multiplied by volume-square, then divided by volume once). Still should be multiplied by deltaSLD**2 to go to abs units, scale will be volume fraction if obtained intensity from the calculation converges to 1 at q=0
             rawIAtQMin.append(item[0][0])
             # we have surfaces available at item[2] if we want. 
             rawDataV.append(item[1]) # volumes that come out are actual volumes (e.g. for sphere = 4/3 pi r^3)
