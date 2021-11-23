@@ -56,14 +56,34 @@ def main(argv = None):
             Cobbled together by Brian R. Pauw.
             Released under a GPLv3+ license.
             """)
+    # TODO: add info about output files to be created ...
     parser.add_argument("-f", "--efName", type = str, default = None,
             help = "Path to excel filename containing the sim settings")
     parser.add_argument("-g", "--group", type = str, default = None,
             help = "simulation group to work on")    
     parser.add_argument("-n", "--numProcesses", type = int, default = None,
             help = "Maximum number of parallel processes. Default is number of cores on system.")    
-
-    # TODO: add info about output files to be created ...
+    parser.add_argument("-s", "--filename", type = str, default = None,
+            help = "FOR DIRECT CALL: input STL filename")    
+    parser.add_argument("-q", "--qmin", type = float, default = 0.01,
+            help = "FOR DIRECT CALL: minimum q value")    
+    parser.add_argument("-Q", "--qmax", type = float, default = 2,
+            help = "FOR DIRECT CALL: maximum q value")    
+    parser.add_argument("-N", "--nq", type = int, default = 100,
+            help = "FOR DIRECT CALL: number of q values")    
+    parser.add_argument("-R", "--nrep", type = int, default = 100,
+            help = "FOR DIRECT CALL: number of repetitions")
+    parser.add_argument("-P", "--npoints", type = int, default = 1000,
+            help = "FOR DIRECT CALL: number of points in object")
+    parser.add_argument("-M", "--mu", type = float, default = 1,
+            help = "FOR DIRECT CALL: mean of Gaussian size distribution")
+    parser.add_argument("-S", "--sigma", type = float, default = 0.01,
+            help = "FOR DIRECT CALL: width (sigma) of Gaussian size distribution")
+    parser.add_argument("-O", "--ofname", type = str, default = None,
+            help = "FOR DIRECT CALL: output filename")
+    # parser.add_argument("-D", "--projectDirectory", type = str, default = '.',
+    #         help = "FOR DIRECT CALL: project directory (starting point)")
+ 
     if isMac():
         # on OSX remove automatically provided PID,
         # otherwise argparse exits and the bundle start fails silently

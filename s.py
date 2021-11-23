@@ -30,7 +30,12 @@ class s(object):
     _SLDs = None
     _volumefraction = None
 
-    def __init__(self, efName = None, group = None, numProcesses = None, run=True):
+    def __init__(self, numProcesses = 1, run=True, **kwargs):
+        """ 
+        can be run either using an excel file as input or for direct simulation of a single file.
+        
+        
+        """
         # reset everything for a new instance
         self.resultDict = []   # results in dictionary form
         self.volumes = []      # volumes of the simulated objects
@@ -42,14 +47,19 @@ class s(object):
         # For single-phase, just have [SLD(particle), SLD(dispersant)]
         self._SLDs = [1., 0.]
         self._volumefraction = 1. # volume fraction of scatterers        
-
-        if run:
-            if efName is None:
-                os.error('Path to excel filename with the simulation settings must be provided')
-            if group is None:
-                os.error('simulation group must be specified')
-            Tests = self.loadTests(efName)
-            self.resultDict = self.runTests(Tests = Tests, group = group, numProcesses = numProcesses)
+        
+        assert (kwargs['efName'] is not None) or (kwargs['filename'] is not None), 'either an excel file with a list of simulations or a single STL file should be provided'
+        if kwargs['efName'] is not None: 
+            # run in the traditional way:
+            if run:
+                assert kwargs['efName'] is not None, 'Path to excel filename with the simulation settings must be provided'
+                assert kwargs['group'] is not None, 'simulation group must be specified'
+                Tests = self.loadTests(kwargs['efName'])
+                self.resultDict = self.runTests(Tests = Tests, group = kwargs['group'], numProcesses = numProcesses)
+        else: # we run this in the single-file way:
+            if run:
+                Tests = self.genTest(kwargs)
+                resultDict = self.runTests(Tests=Tests, group = 'default',numProcesses = numProcesses)
             
     def loadTests(self, efName):
         efName = Path(efName) # it's ok if this is done multiple times...
@@ -77,6 +87,48 @@ class s(object):
             })
         # Tests['fastmethod'] = False # no longer implemented...  
         Tests["projectdirectory"] = projectdirectory # add a project directory to all the entries  
+        return Tests
+
+    def genTest(self, pars):
+        """Similar to loadTests, but this is generating test parameters for a single simulation based on input parameters"""
+        # fill defaults:
+        Tests = pandas.DataFrame(
+            data={
+                "testgroup": "default",
+                "filename": Path('.'),
+                "projectdirectory": Path('.'),
+                "ofname": Path('default.out'),
+                "npoints":1000, 
+                "nq":200, 
+                "nrep":100, 
+                "memsave":True, 
+                # "fastmethod":False, # no longer implemented
+                "qmin": 0.01,
+                "qmax": 2,
+                "mu": 1,
+                "sigma": 0.01,
+            }, 
+            index = [0],
+        )
+        for key, val in pars.items():
+            if key.lower() in ['filename', 'ofname', 'projectdirectory']:
+                val = Path(val)
+            print(f'Changing parameter: {key.lower()} to value: {val}')
+            Tests[key.lower()] = val
+        # cast to the right datatypes:
+        Tests = Tests.astype({
+            # "filename": Path,
+            # "ofname": Path,
+            # "projectdirectory": Path,
+            "npoints":"int", 
+            "nq":"int", 
+            "nrep":"int", 
+            "memsave":"bool", 
+            "qmin": "float",
+            "qmax": "float",
+            "mu": "float",
+            "sigma": "float",
+            })
         return Tests
 
     def singleRun(self, parameters):
@@ -160,6 +212,7 @@ class s(object):
         self.simdata = data
 
         if parameters["ofname"] is not None:
+            Path(parameters["projectdirectory"],parameters["ofname"]).parent.mkdir(parents=True, exist_ok=True)
             data.to_csv(Path(parameters["projectdirectory"],parameters["ofname"]).as_posix(), header = False, sep = ';', index = False)
 
         return {"data"      : data,
@@ -174,8 +227,8 @@ class s(object):
         if group is not None:
             testindices = Tests[Tests.testgroup == group].index.tolist() # old: .values
                     
-        for testindex in testindices:
-            print("Testindex: {} of {}".format(testindex, len(testindices)))
+        for tn, testindex in enumerate(testindices):
+            print("Test: {} of {}".format(tn + 1, len(testindices)))
             param = Tests.loc[testindex]
             try:
                 del res
