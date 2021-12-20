@@ -17,7 +17,7 @@ from . import stlfunctions
 # from stlfunctions   import getSTLReader, STLToPolydata
 # from .distfunctions  import interpolate, distSpreadGaussian
 # from .smearfunctions import halfTrapzPDF, slitSmearTrapz
-from . import multiprocessing 
+import multiprocessing 
 # from multiprocessing import Pool
 
 class s(object):
