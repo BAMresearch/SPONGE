@@ -6,18 +6,18 @@ import argparse
 import datetime
 import os
 
-from nexuswriter import NeXusWriter
+from .nexuswriter import NeXusWriter
 
 from pathlib import Path
 
 # from plotfunctions  import simPlot
-import calcfunctions
+from . import calcfunctions
 # from calcfunctions  import pickPointsInMeshV2, pointsToScatter, pointsToScatterD, logEdges, polydataToMass
-import stlfunctions
+from . import stlfunctions
 # from stlfunctions   import getSTLReader, STLToPolydata
 # from .distfunctions  import interpolate, distSpreadGaussian
 # from .smearfunctions import halfTrapzPDF, slitSmearTrapz
-import multiprocessing 
+from . import multiprocessing 
 # from multiprocessing import Pool
 
 class s(object):

@@ -81,8 +81,8 @@ def main(argv = None):
             help = "FOR DIRECT CALL: width (sigma) of Gaussian size distribution")
     parser.add_argument("-O", "--ofname", type = str, default = None,
             help = "FOR DIRECT CALL: output filename")
-    # parser.add_argument("-D", "--projectDirectory", type = str, default = '.',
-    #         help = "FOR DIRECT CALL: project directory (starting point)")
+    parser.add_argument("-D", "--projectDirectory", type = str, default = '.',
+            help = "FOR DIRECT CALL: project directory (starting point)")
  
     if isMac():
         # on OSX remove automatically provided PID,
